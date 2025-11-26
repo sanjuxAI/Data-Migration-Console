@@ -1,0 +1,76 @@
+✅ STEP 1 — Create a fresh venv again
+Open Anaconda Prompt:
+
+conda activate migrator
+cd <project_folder>
+
+OPTIONAL 
+rmdir /s /q venv
+
+✅ STEP 2 — Create a fresh venv again
+python -m venv venv
+
+
+Activate it:
+
+venv\Scripts\activate
+
+
+Prompt must show:
+
+(venv)
+
+✅ STEP 3 — Install correct versions
+
+Run EXACTLY:
+
+pip install -r requirements.txt
+
+Why these exact versions?
+Package	Version	Reason
+cryptography 38.0.4	✔	Last version fully compatible with PyInstaller on Windows (no rust, no broken submodules)
+oracledb 1.4.2	✔	Fully compatible with cryptography < 40 for thin mode
+
+✅ STEP 4 — Test cryptography BEFORE building the EXE
+
+Run this:
+
+python - <<EOF
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+print("PBKDF2 OK")
+EOF
+
+
+If it prints:
+
+PBKDF2 OK
+
+
+→ FIXED.
+
+If it fails, tell me the error.
+
+✅ STEP 5 — Build EXE with explicit hidden imports
+
+Now run:
+
+pyinstaller --noconfirm --onedir --windowed --name OracleToMSSQL ^
+ --add-data ".env;." ^
+ --add-data "logo.ico;." ^
+ --add-data "icons/dark;icons/dark" ^
+ --add-data "icons/light;icons/light" ^
+ --hidden-import=cryptography ^
+ --hidden-import=cryptography.hazmat.primitives ^
+ --hidden-import=cryptography.hazmat.primitives.kdf ^
+ --hidden-import=cryptography.hazmat.primitives.kdf.pbkdf2 ^
+ --hidden-import=cryptography.hazmat.backends ^
+ --hidden-import=sqlparse ^
+ --hidden-import=PyQt6.QtSvg ^
+ --collect-all PyQt6 ^
+ --collect-all oracledb ^
+ app.py
+
+
+
+
+This includes ALL thin-mode-required submodules.

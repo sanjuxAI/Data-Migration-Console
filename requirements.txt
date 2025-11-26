@@ -1,0 +1,12 @@
+cryptography==38.0.4
+oracledb==1.4.2
+pandas
+pyodbc
+ttkbootstrap
+tqdm
+python-dotenv
+sqlparse
+pillow
+PyQt6
+PyQt6-Qt6
+PyQt6-sip
