@@ -42,6 +42,30 @@ This tool includes a SQL editor, automatic datatype handling, real-time migratio
 
 ---
 
+## Environment Setup (`.env`)
+
+Create a `.env` file in the project root:
+
+```env
+# -----------------------------
+# ORACLE (Source)
+# -----------------------------
+ORACLE_USERNAME=
+ORACLE_PASSWORD=
+ORACLE_HOSTNAME=
+ORACLE_PORT=
+ORACLE_SID=
+
+# -----------------------------
+# MSSQL (Target)
+# -----------------------------
+SQL_SERVER=
+SQL_DATABASE=
+SQL_USERNAME=
+SQL_PASSWORD=
+
+```
+---
 ##  Tech Stack
 
 - **Python 3.10+**
