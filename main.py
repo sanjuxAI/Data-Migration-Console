@@ -109,36 +109,133 @@ def connect_mssql(server: str, database: str, username: str, password: str, driv
 #         return "NVARCHAR(255)"
 
 
-def map_oracle_to_mssql_dtype(dtype: str, precision=None, scale=None, length=None) -> str:
-    dtype = dtype.lower()
+# def map_oracle_to_mssql_dtype(dtype: str, precision=None, scale=None, length=None) -> str:
+#     dtype = dtype.lower()
 
-    if "char" in dtype:
-        if not length or length > 4000:
-            length = 4000
+#     if "char" in dtype:
+#         if not length or length > 4000:
+#             length = 4000
+#         return f"NVARCHAR({length})"
+
+#     elif "number" in dtype or "decimal" in dtype:
+#         precision = precision or 38
+#         scale = scale or 2
+#         precision = min(precision, 38)
+#         scale = min(scale, 38)
+#         return f"NUMERIC({precision},{scale})"
+
+#     elif "date" in dtype or "timestamp" in dtype:
+#         return "DATETIME2"   # <- FIXED
+
+#     elif "clob" in dtype or "blob" in dtype:
+#         return "NVARCHAR(MAX)"
+
+#     elif "float" in dtype or "double" in dtype:
+#         return "FLOAT"
+
+#     else:
+#         return "NVARCHAR(255)"
+
+
+def map_oracle_to_mssql_dtype(dtype: str, precision=None, scale=None, length=None) -> str:
+    """
+    Universal Oracle → MSSQL datatype mapper.
+    Handles NUMBER, VARCHAR2, DATE, TIMESTAMP, RAW, CLOB, BLOB, FLOAT, INTEGER, XMLTYPE, etc.
+    """
+
+    dtype = (dtype or "").strip().lower()
+
+    # -----------------------------
+    # CHARACTER TYPES
+    # -----------------------------
+    if dtype in ("char", "nchar", "varchar", "varchar2", "nvarchar2"):
+        length = length or 255
+        if length > 4000:
+            return "NVARCHAR(MAX)"
         return f"NVARCHAR({length})"
 
-    elif "number" in dtype or "decimal" in dtype:
-        precision = precision or 38
-        scale = scale or 2
-        precision = min(precision, 38)
-        scale = min(scale, 38)
-        return f"NUMERIC({precision},{scale})"
+    # -----------------------------
+    # NUMBER / INTEGER TYPES
+    # -----------------------------
+    if "number" in dtype or "decimal" in dtype or "numeric" in dtype:
 
-    # FIX ⬇⬇⬇
-    elif "date" in dtype or "timestamp" in dtype:
-        return "DATETIME2"   # <- FIXED
+        # NUMBER with no precision → treat as DECIMAL(38,0)
+        if precision is None and scale is None:
+            return "DECIMAL(38, 0)"
 
-    elif "clob" in dtype or "blob" in dtype:
-        return "NVARCHAR(MAX)"
+        # NUMBER(10) → DECIMAL(10,0)
+        if precision is not None and (scale is None or scale == 0):
+            return f"DECIMAL({precision}, 0)"
 
-    elif "float" in dtype or "double" in dtype:
+        # NUMBER(p,s) → DECIMAL(p,s)
+        if precision is not None and scale is not None:
+            precision = min(int(precision), 38)
+            scale = min(int(scale), precision)
+            return f"DECIMAL({precision}, {scale})"
+
+        return "DECIMAL(38, 10)"  # safe fallback
+
+    # Oracle INTEGER maps cleanly
+    if "int" in dtype:
+        return "INT"
+
+    # -----------------------------
+    # FLOAT / BINARY_FLOAT / BINARY_DOUBLE
+    # -----------------------------
+    if "float" in dtype or "binary_float" in dtype or "double" in dtype or "binary_double" in dtype:
         return "FLOAT"
 
-    else:
-        return "NVARCHAR(255)"
+    # -----------------------------
+    # DATE / TIME TYPES
+    # -----------------------------
+    if "date" in dtype:
+        return "DATETIME2"
 
+    if "timestamp" in dtype:
+        return "DATETIME2"
 
+    if "time" in dtype:
+        return "TIME"
 
+    # -----------------------------
+    # LOB TYPES
+    # -----------------------------
+    if "clob" in dtype:
+        return "NVARCHAR(MAX)"
+
+    if "blob" in dtype:
+        return "VARBINARY(MAX)"
+
+    # -----------------------------
+    # RAW / LONG RAW
+    # -----------------------------
+    if "raw" in dtype:
+        return "VARBINARY(MAX)"
+
+    # -----------------------------
+    # XMLTYPE
+    # -----------------------------
+    if "xml" in dtype:
+        return "XML"
+
+    # -----------------------------
+    # LONG / LONG VARCHAR
+    # -----------------------------
+    if "long" in dtype:
+        return "NVARCHAR(MAX)"
+
+    # -----------------------------
+    # BFILE
+    # -----------------------------
+    if "bfile" in dtype:
+        return "VARBINARY(MAX)"
+
+    # -----------------------------
+    # DEFAULT FALLBACK
+    # -----------------------------
+    return "NVARCHAR(255)"
+
+    
 def fetch_oracle_data(oracle_conn, query):
     cursor = oracle_conn.cursor()
     cursor.execute(query)
